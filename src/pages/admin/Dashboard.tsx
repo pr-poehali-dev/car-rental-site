@@ -7,13 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Icon from "@/components/ui/icon";
-import { Car, mockCarsData, fetchMockApi } from "@/lib/api";
+import { Car, mockCarsData, mockBookingsData, fetchMockApi } from "@/lib/api";
 import { toast } from "@/components/ui/use-toast";
+import CarEditModal from "@/components/admin/CarEditModal";
+import { useAuth } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
+  const { logout, user } = useAuth();
   const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("cars");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCar, setSelectedCar] = useState<Car | undefined>(undefined);
 
   useEffect(() => {
     const fetchCars = async () => {
@@ -42,6 +47,18 @@ const AdminDashboard = () => {
 
     fetchCars();
   }, []);
+
+  // Функция для открытия модального окна добавления автомобиля
+  const handleAddCar = () => {
+    setSelectedCar(undefined); // Сбрасываем выбранный автомобиль для формы добавления
+    setIsEditModalOpen(true);
+  };
+
+  // Функция для открытия модального окна редактирования автомобиля
+  const handleEditCar = (car: Car) => {
+    setSelectedCar(car);
+    setIsEditModalOpen(true);
+  };
 
   // Функция для удаления автомобиля
   const handleDeleteCar = async (id: number) => {
@@ -99,6 +116,19 @@ const AdminDashboard = () => {
     }
   };
 
+  // Функция для успешного обновления или добавления автомобиля
+  const handleCarFormSuccess = async () => {
+    // В реальном проекте здесь нужно заново запросить список автомобилей
+    // const response = await carsApi.getAllCars();
+    
+    // Эмулируем обновление данных
+    const response = await fetchMockApi(mockCarsData, 500);
+    
+    if (response.success) {
+      setCars(response.data);
+    }
+  };
+
   // Отображение состояния загрузки
   if (loading) {
     return (
@@ -119,12 +149,25 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold mb-2">Панель администратора</h1>
             <p className="text-gray-600">Управление автомобилями и бронированиями</p>
           </div>
-          <Link to="/">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Icon name="ExternalLink" size={18} />
-              Вернуться на сайт
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            {user && (
+              <div className="flex items-center mr-4">
+                <div className="mr-2">
+                  <span className="text-sm font-medium block">{user.name}</span>
+                  <span className="text-xs text-gray-500">{user.role === 'admin' ? 'Администратор' : 'Менеджер'}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  <Icon name="LogOut" size={18} />
+                </Button>
+              </div>
+            )}
+            <Link to="/">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Icon name="ExternalLink" size={18} />
+                Вернуться на сайт
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -176,7 +219,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Активные бронирования</p>
-                <p className="text-3xl font-bold">12</p>
+                <p className="text-3xl font-bold">{mockBookingsData.filter(b => b.status === 'confirmed').length}</p>
               </div>
               <div className="bg-purple-100 p-3 rounded-full">
                 <Icon name="CalendarCheck" className="text-purple-600" size={24} />
@@ -197,7 +240,10 @@ const AdminDashboard = () => {
         <TabsContent value="cars">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Управление автомобилями</h2>
-            <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+              onClick={handleAddCar}
+            >
               <Icon name="Plus" size={18} />
               Добавить автомобиль
             </Button>
@@ -266,7 +312,12 @@ const AdminDashboard = () => {
                               className="text-gray-600"
                             />
                           </Button>
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditCar(car)}
+                          >
                             <Icon name="Edit" size={16} className="text-blue-600" />
                           </Button>
                           <Button 
@@ -288,11 +339,29 @@ const AdminDashboard = () => {
         </TabsContent>
         
         <TabsContent value="bookings">
-          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-            <div className="text-center">
+          <div className="bg-white rounded-lg border overflow-hidden p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Управление бронированиями</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Icon name="Filter" size={16} />
+                  Фильтры
+                </Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Icon name="Download" size={16} />
+                  Экспорт
+                </Button>
+              </div>
+            </div>
+            
+            <p className="text-gray-500 mb-4">
+              Здесь будет список бронирований автомобилей. Следующая часть разработки.
+            </p>
+            
+            <div className="text-center py-12">
               <Icon name="CalendarCheck" size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">Управление бронированиями</h3>
-              <p className="text-gray-500">Этот раздел будет доступен в следующих обновлениях.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Пока здесь ничего нет</h3>
+              <p className="text-gray-500">Этот раздел находится в разработке и будет доступен в следующих обновлениях.</p>
             </div>
           </div>
         </TabsContent>
@@ -317,6 +386,14 @@ const AdminDashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Модальное окно редактирования/добавления автомобиля */}
+      <CarEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        car={selectedCar}
+        onSuccess={handleCarFormSuccess}
+      />
     </div>
   );
 };
