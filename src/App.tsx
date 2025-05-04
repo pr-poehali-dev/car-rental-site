@@ -1,6 +1,8 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
+import Catalog from './pages/Catalog';
+import CarDetail from './pages/CarDetail';
 import NotFound from './pages/NotFound';
 import { Toaster } from "@/components/ui/toaster";
 
@@ -11,7 +13,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Index />} />
-        {/* Add other routes here in future implementations */}
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/car/:id" element={<CarDetail />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
