@@ -5,6 +5,7 @@ import Catalog from './pages/Catalog';
 import CarDetail from './pages/CarDetail';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminLogin from './pages/admin/Login';
+import Unauthorized from './pages/admin/Unauthorized';
 import NotFound from './pages/NotFound';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from './context/AuthContext';
@@ -21,6 +22,7 @@ function App() {
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/car/:id" element={<CarDetail />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/unauthorized" element={<Unauthorized />} />
           <Route path="/admin" element={
             <ProtectedRoute>
               <AdminDashboard />
