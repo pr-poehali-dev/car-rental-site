@@ -28,10 +28,79 @@ export interface Car {
   updatedAt?: string;
 }
 
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  phone?: string;
+  role: "admin" | "manager" | "customer";
+  avatar?: string;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface Booking {
+  id: number;
+  carId: number;
+  userId: number;
+  startDate: string;
+  endDate: string;
+  totalPrice: number;
+  status: "pending" | "confirmed" | "canceled" | "completed";
+  paymentStatus: "unpaid" | "paid" | "refunded";
+  createdAt: string;
+  updatedAt: string;
+  car?: Car;
+  user?: User;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+  expiresAt: number;
+}
+
 export interface ApiResponse<T> {
   data: T;
   success: boolean;
   message?: string;
+}
+
+// Функция для сохранения токена в localStorage
+export function saveAuthToken(token: string, expiresAt: number): void {
+  localStorage.setItem('auth_token', token);
+  localStorage.setItem('auth_expires', expiresAt.toString());
+}
+
+// Функция для получения токена из localStorage
+export function getAuthToken(): string | null {
+  const token = localStorage.getItem('auth_token');
+  const expires = localStorage.getItem('auth_expires');
+  
+  if (!token || !expires) {
+    return null;
+  }
+  
+  // Проверяем, не истек ли токен
+  if (Date.now() > parseInt(expires)) {
+    // Токен истек, удаляем его
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_expires');
+    return null;
+  }
+  
+  return token;
+}
+
+// Функция для удаления токена при выходе
+export function removeAuthToken(): void {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_expires');
 }
 
 // Общая функция для выполнения API-запросов
@@ -48,8 +117,11 @@ async function fetchApi<T>(
   };
 
   try {
-    // В реальном проекте здесь может быть добавление авторизационных токенов
-    // headers.Authorization = `Bearer ${getAuthToken()}`;
+    // Добавляем авторизационный токен, если он есть
+    const token = getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     
     const response = await fetch(url, {
       ...options,
@@ -58,6 +130,11 @@ async function fetchApi<T>(
 
     // Если статус не OK, выбрасываем ошибку
     if (!response.ok) {
+      // Если ошибка 401 - неавторизован, удаляем токен
+      if (response.status === 401) {
+        removeAuthToken();
+      }
+      
       const errorData = await response.json();
       throw new Error(errorData.message || `Ошибка: ${response.status}`);
     }
@@ -122,6 +199,123 @@ export const carsApi = {
   }
 };
 
+// API функции для работы с пользователями
+export const usersApi = {
+  // Получение списка всех пользователей
+  async getAllUsers(): Promise<ApiResponse<User[]>> {
+    return fetchApi<User[]>("/users");
+  },
+
+  // Получение пользователя по ID
+  async getUserById(id: number): Promise<ApiResponse<User>> {
+    return fetchApi<User>(`/users/${id}`);
+  },
+
+  // Создание нового пользователя (регистрация)
+  async createUser(user: Omit<User, "id" | "createdAt">): Promise<ApiResponse<User>> {
+    return fetchApi<User>("/users", {
+      method: "POST",
+      body: JSON.stringify(user)
+    });
+  },
+
+  // Обновление пользователя
+  async updateUser(id: number, user: Partial<User>): Promise<ApiResponse<User>> {
+    return fetchApi<User>(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(user)
+    });
+  },
+
+  // Удаление пользователя
+  async deleteUser(id: number): Promise<ApiResponse<void>> {
+    return fetchApi<void>(`/users/${id}`, {
+      method: "DELETE"
+    });
+  }
+};
+
+// API функции для работы с бронированиями
+export const bookingsApi = {
+  // Получение списка всех бронирований
+  async getAllBookings(): Promise<ApiResponse<Booking[]>> {
+    return fetchApi<Booking[]>("/bookings");
+  },
+
+  // Получение бронирования по ID
+  async getBookingById(id: number): Promise<ApiResponse<Booking>> {
+    return fetchApi<Booking>(`/bookings/${id}`);
+  },
+
+  // Получение бронирований конкретного пользователя
+  async getBookingsByUser(userId: number): Promise<ApiResponse<Booking[]>> {
+    return fetchApi<Booking[]>(`/users/${userId}/bookings`);
+  },
+
+  // Получение бронирований конкретного автомобиля
+  async getBookingsByCar(carId: number): Promise<ApiResponse<Booking[]>> {
+    return fetchApi<Booking[]>(`/cars/${carId}/bookings`);
+  },
+
+  // Создание нового бронирования
+  async createBooking(booking: Omit<Booking, "id" | "createdAt" | "updatedAt">): Promise<ApiResponse<Booking>> {
+    return fetchApi<Booking>("/bookings", {
+      method: "POST",
+      body: JSON.stringify(booking)
+    });
+  },
+
+  // Обновление бронирования (изменение статуса)
+  async updateBooking(id: number, booking: Partial<Booking>): Promise<ApiResponse<Booking>> {
+    return fetchApi<Booking>(`/bookings/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(booking)
+    });
+  },
+
+  // Отмена бронирования
+  async cancelBooking(id: number): Promise<ApiResponse<Booking>> {
+    return fetchApi<Booking>(`/bookings/${id}/cancel`, {
+      method: "POST"
+    });
+  }
+};
+
+// API функции для авторизации
+export const authApi = {
+  // Авторизация пользователя
+  async login(credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> {
+    const response = await fetchApi<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials)
+    });
+    
+    if (response.success && response.data.token) {
+      // Сохраняем токен в localStorage
+      saveAuthToken(response.data.token, response.data.expiresAt);
+    }
+    
+    return response;
+  },
+
+  // Выход пользователя
+  async logout(): Promise<ApiResponse<void>> {
+    const response = await fetchApi<void>("/auth/logout", {
+      method: "POST"
+    });
+    
+    // Удаляем токен из localStorage
+    removeAuthToken();
+    
+    return response;
+  },
+
+  // Проверка авторизации пользователя
+  async checkAuth(): Promise<ApiResponse<User>> {
+    return fetchApi<User>("/auth/me");
+  }
+};
+
 // Моковые данные для разработки (когда API еще не готов)
 export const mockCarsData: Car[] = [
   {
@@ -179,6 +373,91 @@ export const mockCarsData: Car[] = [
     updatedAt: "2023-06-18T16:40:00Z"
   }
 ];
+
+// Моковые пользователи
+export const mockUsersData: User[] = [
+  {
+    id: 1,
+    email: "admin@autopro.ru",
+    name: "Администратор",
+    phone: "+7 (999) 123-45-67",
+    role: "admin",
+    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+    createdAt: "2023-01-01T00:00:00Z",
+    lastLogin: "2023-05-04T10:30:00Z"
+  },
+  {
+    id: 2,
+    email: "manager@autopro.ru",
+    name: "Менеджер",
+    phone: "+7 (999) 765-43-21",
+    role: "manager",
+    avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+    createdAt: "2023-01-05T00:00:00Z",
+    lastLogin: "2023-05-03T15:20:00Z"
+  }
+];
+
+// Моковые данные бронирований
+export const mockBookingsData: Booking[] = [
+  {
+    id: 1,
+    carId: 1,
+    userId: 2,
+    startDate: "2023-05-10T10:00:00Z",
+    endDate: "2023-05-15T10:00:00Z",
+    totalPrice: 12500,
+    status: "confirmed",
+    paymentStatus: "paid",
+    createdAt: "2023-05-01T14:30:00Z",
+    updatedAt: "2023-05-02T09:15:00Z"
+  },
+  {
+    id: 2,
+    carId: 3,
+    userId: 2,
+    startDate: "2023-06-01T10:00:00Z",
+    endDate: "2023-06-05T10:00:00Z",
+    totalPrice: 18000,
+    status: "pending",
+    paymentStatus: "unpaid",
+    createdAt: "2023-05-03T11:20:00Z",
+    updatedAt: "2023-05-03T11:20:00Z"
+  }
+];
+
+// Функция для эмуляции авторизации
+export async function mockLogin(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
+  // Проверяем учетные данные
+  const admin = mockUsersData[0];
+  const manager = mockUsersData[1];
+  
+  if (email === admin.email && password === "admin123") {
+    return {
+      success: true,
+      data: {
+        user: admin,
+        token: "mock_admin_token_12345",
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000 // токен действителен 24 часа
+      }
+    };
+  } else if (email === manager.email && password === "manager123") {
+    return {
+      success: true,
+      data: {
+        user: manager,
+        token: "mock_manager_token_12345",
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+      }
+    };
+  } else {
+    return {
+      success: false,
+      data: {} as AuthResponse,
+      message: "Неверный email или пароль"
+    };
+  }
+}
 
 // Функция для эмуляции запросов к API на время разработки
 export async function fetchMockApi<T>(data: T, delay = 500): Promise<ApiResponse<T>> {
