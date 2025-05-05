@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import CarEditModal from "@/components/admin/CarEditModal";
 import SystemSettings from "@/components/admin/SystemSettings";
 import UserManagement from "@/components/admin/UserManagement";
+import Analytics from "@/components/admin/Analytics";
 import { useAuth } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
@@ -235,6 +236,7 @@ const AdminDashboard = () => {
         <TabsList className="mb-6">
           <TabsTrigger value="cars">Автомобили</TabsTrigger>
           <TabsTrigger value="bookings">Бронирования</TabsTrigger>
+          <TabsTrigger value="analytics">Аналитика</TabsTrigger>
           <TabsTrigger value="users">Пользователи</TabsTrigger>
           <TabsTrigger value="settings">Настройки</TabsTrigger>
         </TabsList>
@@ -366,6 +368,10 @@ const AdminDashboard = () => {
               <p className="text-gray-500">Этот раздел находится в разработке и будет доступен в следующих обновлениях.</p>
             </div>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <Analytics />
         </TabsContent>
         
         <TabsContent value="users">
