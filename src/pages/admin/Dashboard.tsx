@@ -10,6 +10,8 @@ import Icon from "@/components/ui/icon";
 import { Car, mockCarsData, mockBookingsData, fetchMockApi } from "@/lib/api";
 import { toast } from "@/components/ui/use-toast";
 import CarEditModal from "@/components/admin/CarEditModal";
+import SystemSettings from "@/components/admin/SystemSettings";
+import UserManagement from "@/components/admin/UserManagement";
 import { useAuth } from "@/context/AuthContext";
 
 const AdminDashboard = () => {
@@ -367,23 +369,11 @@ const AdminDashboard = () => {
         </TabsContent>
         
         <TabsContent value="users">
-          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-            <div className="text-center">
-              <Icon name="Users" size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">Управление пользователями</h3>
-              <p className="text-gray-500">Этот раздел будет доступен в следующих обновлениях.</p>
-            </div>
-          </div>
+          <UserManagement />
         </TabsContent>
         
         <TabsContent value="settings">
-          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-            <div className="text-center">
-              <Icon name="Settings" size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">Настройки системы</h3>
-              <p className="text-gray-500">Этот раздел будет доступен в следующих обновлениях.</p>
-            </div>
-          </div>
+          <SystemSettings />
         </TabsContent>
       </Tabs>
       
